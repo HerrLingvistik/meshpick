@@ -31,11 +31,12 @@
 
 
 using namespace std;
+//using namespace glm;
 
 const int W=600, H=600;
 vector<float> model;
-GLuint vertArray, vertBuffer, markerArray, markerBuffer, upperLeftArray, upperLeftBuffer, lowerRightArray, lowerRightBuffer;
-glm::vec4 strut, strut2;
+GLuint vertArray, vertBuffer, colorArray, colorBuffer, markerArray, markerBuffer, upperLeftArray, upperLeftBuffer, lowerRightArray, lowerRightBuffer;
+glm::vec3 cameraPos = glm::vec3(0,0,10); 
 GLfloat upperLeft[] = {
 	-0.9f, 0.9f, 0.0f,
 };
@@ -50,11 +51,29 @@ GLfloat marker[] = {
 	-0.9f,  0.9f, 0.0f,
 };
 
+/*GLfloat verts[] = {
+	-1.0f, -1.0f, 0.0f, /*pos 1.0f, 0.0f, 0.0f, /*color*/
+	/*1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f
+};*/
+
+GLfloat verts[] = {
+	-1.0f, -1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	0.0f,  1.0f, 0.0f
+};
+
+GLfloat colors[] = {
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,
+	1.0f,  0.0f, 0.0f
+};
+
 GLuint drawShader, markerShader;
 glm::mat4 Projection = glm::perspective(45.0f, 3.f / 3.f, 0.1f, 100.f);
 //glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float) W / (float)H, 0.1f, 300.0f);
 glm::mat4 View = glm::lookAt(
-    glm::vec3(0,0,10), // Camera is at (4,3,3), in World Space
+    cameraPos, // Camera is at (4,3,3), in World Space
     glm::vec3(0,0,0), // and looks at the origin
     glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
@@ -74,10 +93,16 @@ void draw(){
 	glUseProgram(drawShader);
 	glBindVertexArray(vertArray);
 	glEnableVertexAttribArray(0);
+	//glBindVertexArray(colorArray);
+	glEnableVertexAttribArray(1);
+
 	glUniformMatrix4fv(glGetUniformLocation(drawShader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
-	glUniform2f(glGetUniformLocation(drawShader, "upperLeft"), strut.x, strut.y);
-	glUniform2f(glGetUniformLocation(drawShader, "lowerRight"), strut2.x, strut2.y);
-	glDrawArrays(GL_TRIANGLES, 0, model.size()/3);	
+	//glUniform2f(glGetUniformLocation(drawShader, "upperLeft"), strut.x, strut.y);
+	//glUniform2f(glGetUniformLocation(drawShader, "lowerRight"), strut2.x, strut2.y);
+	
+	//glDrawArrays(GL_TRIANGLES, 0, model.size()/3);
+	glDrawArrays(GL_TRIANGLES, 0, 3);	
+	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);	
 	glBindVertexArray(0);
 	glUseProgram(0);
@@ -96,7 +121,7 @@ void draw(){
 void reshape(GLsizei w, GLsizei h)
 {
 	glViewport(0, 0, W, H);
-	Projection = glm::perspective(45.0f, 3.f / 3.f, 0.1f, 100.f);
+	glm::mat4 Projection = glm::perspective(45.0f, 3.f / 3.f, 0.1f, 100.f);
 }
 
 // This function is called whenever the computer is idle
@@ -106,14 +131,7 @@ void idle()
 {
   glutPostRedisplay();
 }
-/*
-	GLfloat marker[] = {
-	-0.9f, -0.9f, 0.0f,
-	0.9f, -0.9f, 0.0f,
-	0.9f,  0.9f, 0.0f,
-	-0.9f,  0.9f, 0.0f,
-};
-*/
+
 void changeMarker(){
 	marker[0] = upperLeft[0];
 	marker[1] = upperLeft[1];
@@ -126,37 +144,101 @@ void changeMarker(){
 	glBindBuffer(GL_ARRAY_BUFFER, markerBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(marker), marker, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	strut = MVP * glm::vec4(upperLeft[0], upperLeft[1], 0.0f, 1.0f);
-	strut2 = MVP * glm::vec4(lowerRight[0], lowerRight[1], 0.0f, 1.0f);
-	
+	//strut = MVP * glm::vec4(upperLeft[0], upperLeft[1], 0.0f, 1.0f);
+	//strut2 = MVP * glm::vec4(lowerRight[0], lowerRight[1], 0.0f, 1.0f);
 }
 
 void mouseHoldFunction(int x, int y){
 	
-	//if(button == GLUT_LEFT_BUTTON){
 		lowerRight[0] = (float)x/W*2.0f-1.0f;
 		lowerRight[1] = -1.0f*((float)y/H*2.0f-1.0f);
 		cout<<"x: "<<to_string(lowerRight[0])<<endl;
 		cout<<"y: "<<to_string(lowerRight[1])<<endl;
 		changeMarker();
-	//}
 	
+}
+
+void changeColorBuffer(int startIndex){
+	colors[2] = (colors[2] == 0.0f) ? 1.0f : 0.0f;
+	colors[5] = (colors[5] == 0.0f) ? 1.0f : 0.0f;
+	colors[8] = (colors[8] == 0.0f) ? 1.0f : 0.0f;
+}
+
+void testIntersection(float x, float y){
+	bool intersection = true;
+	float EPSILON = 0.00001f, u, v, det, inv_det;
+	//glm::vec3 dir = glm::vec3(0.0f,0.0f,1.0f);
+	//glm::vec3 origin = glm::vec3(x,y,10); 
+
+	//glm::vec3 dir_clip = glm::vec3(glm::inverse(MVP)*glm::vec4(x,y,-1.0f,1.0f));
+	glm::vec4 dir_clip = glm::vec4(x,y,-1.0f,1.0f);	
+	glm::vec4 dir_eye = glm::inverse(Projection)*dir_clip;
+	//Detta är en vektor då ska den ha 0.0	
+	dir_eye = glm::vec4(glm::vec2(dir_eye), -1.0, 0.0);
+	glm::vec3 dir_world = glm::vec3(glm::inverse(View)*dir_eye);	
+	//glm::vec3 origin = glm::vec3(glm::inverse(MVP)*glm::vec4(x,y,10,1.0f));
+	glm::vec3 origin =  cameraPos;//glm::vec3(0,0,10);
+
+
+	//Gör nedanstående för alla trianglar och ändra färg vid intersection
+	glm::vec3 v0 = glm::vec3(verts[0], verts[1], verts[2]);
+	glm::vec3 v1 = glm::vec3(verts[3], verts[4], verts[5]);
+	glm::vec3 v2 = glm::vec3(verts[6], verts[7], verts[8]);
+	//glm::vec3 V1 = glm::vec3(verts[3]-verts[0], verts[4]-verts[1], verts[5]-verts[2]);
+	glm::vec3 V1 = v1-v0;
+	glm::vec3 V2 = v2-v0;
+
+	glm::vec3 P = glm::cross(dir_world,V2);
+	det = glm::dot(V1,P);
+
+	if(det > -EPSILON && det < EPSILON){ 
+		glutSetWindowTitle("NO!");
+		intersection = false;
+	}
+	inv_det = 1.0f/det;
+
+	glm::vec3 T = origin - v0;//glm::vec3(origin.x-verts[0], origin.y-verts[1], origin.z-verts[2]);
+	u = glm::dot(T,P)*inv_det;
+
+	if(u < 0.0f || u>1.0f){ 
+		glutSetWindowTitle("NO!");
+		intersection = false;
+	}
+	//Prepare to test v parameter
+	glm::vec3 Q = glm::cross(T, V1);
+
+  //Calculate V parameter and test bound
+  v = glm::dot(dir_world, Q) * inv_det;
+  //The intersection lies outside of the triangle
+  if(v < 0.f || (u + v)  > 1.f){ 
+		glutSetWindowTitle("NO!");
+		intersection = false;
+	}
+
+  float t = glm::dot(V2, Q) * inv_det;
+	cout << "intersection eller ? " << intersection << endl;
+  if(t > EPSILON && intersection != false) { //ray intersection
+		changeColorBuffer(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+		glutSetWindowTitle("YEAS!");
+    intersection = true;
+  }else{
+		//changeColorBuffer(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+	}
+	//glm::vec3 inte = glm::vec3(origin.x+dir_world.x*t, origin.y+dir_world.y*t, origin.z + dir_world.z*t);
+
 }
 
 void mouseFunction(int button, int state, int x, int y){
 	if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		upperLeft[0] = (float)x/W*2.0f-1.0f;
 		upperLeft[1] = -1.0f*((float)y/H*2.0f-1.0f);
-		cout<<"x: "<<to_string(upperLeft[0])<<endl;
-		cout<<"y: "<<to_string(upperLeft[1])<<endl;
+		testIntersection( (float)x/W*2.0f-1.0f, -1.0f*((float)y/H*2.0f-1.0f));
 	}
-	/*if(button == GLUT_LEFT_BUTTON && state == GLUT_UP){
-		lowerRight[0] = (float)x/W*2.0f-1.0f;
-		lowerRight[1] = -1.0f*((float)y/H*2.0f-1.0f);
-		cout<<"x: "<<to_string(lowerRight[0])<<endl;
-		cout<<"y: "<<to_string(lowerRight[1])<<endl;
-		changeMarker();
-	}*/
+
 }
 
 void init(){
@@ -168,23 +250,46 @@ void init(){
 	glutDisplayFunc(draw);
 	glutReshapeFunc(reshape);
 	glutIdleFunc(idle);
-	glutMotionFunc(mouseHoldFunction);	
+	//glutMotionFunc(mouseHoldFunction);	
 	glutMouseFunc(mouseFunction);	
 	
 	drawShader = loadShaders("shaders/draw.vert", "shaders/draw.frag");
 	markerShader = loadShaders("shaders/marker.vert", "shaders/marker.frag");
 
 	model = loadobj("./test.obj");
+	/*glGenVertexArrays(1, &vertArray);
+	glBindVertexArray(vertArray);
+	glGenBuffers(1, &vertBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(float)*model.size(), &model[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(glGetAttribLocation(drawShader, "inPosition"),3, GL_FLOAT,GL_FALSE,0,0);
+	glVertexAttribPointer(glGetAttribLocation(drawShader, "inPosition"),3, GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),0);
+	glDisableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(glGetAttribLocation(drawShader, "inColor"),3, GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)(3*sizeof(GLfloat)));
+	glDisableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);*/
+
+
 	glGenVertexArrays(1, &vertArray);
 	glBindVertexArray(vertArray);
 	glGenBuffers(1, &vertBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*model.size(), &model[0], GL_STATIC_DRAW);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(float)*model.size(), &model[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(glGetAttribLocation(drawShader, "inPosition"),3, GL_FLOAT,GL_FALSE,0,0);
 	glVertexAttribPointer(glGetAttribLocation(drawShader, "inPosition"),3, GL_FLOAT,GL_FALSE,0,0);
-	//glVertexAttribPointer(glGetAttribLocation(drawShader, "in_Position"),3, GL_FLOAT,GL_FALSE,0,0);
 	glDisableVertexAttribArray(0);
+	glGenBuffers(1, &vertBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
+	glEnableVertexAttribArray(1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+	glVertexAttribPointer(glGetAttribLocation(drawShader, "inColor"),3, GL_FLOAT,GL_FALSE,0,0);
+	glDisableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -196,17 +301,6 @@ void init(){
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(glGetAttribLocation(markerShader, "inPosition"),3, GL_FLOAT,GL_FALSE,0,0);
 	glDisableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	glGenVertexArrays(1, &upperLeftArray);
-	glBindVertexArray(upperLeftArray);
-	glGenBuffers(1, &upperLeftBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, upperLeftBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(upperLeft), upperLeft, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(glGetAttribLocation(drawShader, "upperLeft"),3, GL_FLOAT,GL_FALSE,0,0);
-	glDisableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 

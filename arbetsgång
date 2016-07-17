@@ -1,3 +1,6 @@
 Jag har använt mig av tidigare egna projekt för att sätta upp funktioner i openGL samt glut. http://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/ för att sätta upp matriser
 http://www.opengl-tutorial.org/beginners-tutorials/tutorial-7-model-loading/ för att ladda 3d-modeller
+https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm till intersection med triangel
+http://antongerdelan.net/opengl/raycasting.html Tutorial för ray picking
+http://www.opengl-tutorial.org/beginners-tutorials/tutorial-4-a-colored-cube/
 
